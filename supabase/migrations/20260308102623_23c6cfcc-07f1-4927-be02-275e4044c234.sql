@@ -1,0 +1,1 @@
+ALTER TABLE public.sahaay_conversations ADD COLUMN IF NOT EXISTS session_title TEXT;

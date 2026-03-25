@@ -1,0 +1,19 @@
+project_id = "ckbvzqokbqyiaspvgwke"
+
+[functions.sahaay-chat]
+verify_jwt = false
+
+[functions.analyze-document]
+verify_jwt = false
+
+[functions.generate-anonymous-summary]
+verify_jwt = false
+
+[functions.verify-fir]
+verify_jwt = false
+
+[functions.update-lawyer-score]
+verify_jwt = false
+
+[functions.ai-toolkit]
+verify_jwt = false

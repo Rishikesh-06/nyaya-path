@@ -1,0 +1,14 @@
+{
+  "intern_id": {
+    "status": 400,
+    "error": "{\"code\":\"PGRST204\",\"details\":null,\"hint\":null,\"message\":\"Could not find the 'intern_id' column of 'mentorship_messages' in the schema cache\"}"
+  },
+  "mentorship_id": {
+    "status": 400,
+    "error": "{\"code\":\"PGRST204\",\"details\":null,\"hint\":null,\"message\":\"Could not find the 'mentorship_id' column of 'mentorship_messages' in the schema cache\"}"
+  },
+  "internId": {
+    "status": 400,
+    "error": "{\"code\":\"PGRST204\",\"details\":null,\"hint\":null,\"message\":\"Could not find the 'internId' column of 'mentorship_messages' in the schema cache\"}"
+  }
+}
