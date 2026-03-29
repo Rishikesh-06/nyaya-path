@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import AnonymousCasePosting from '@/components/AnonymousCasePosting';
 import RatingModal from '@/components/RatingModal';
+import { integrityService } from '@/services/integrityService';
 
 const MyCases = () => {
   const { user } = useAuth();
@@ -29,7 +30,19 @@ const MyCases = () => {
       .eq('victim_id', user.id)
       .order('created_at', { ascending: false });
     if (error) console.error('VictimCases fetch error:', error);
-    setCases(data || []);
+    
+    if (data) {
+      const verifiedData = await Promise.all(data.map(async (c: any) => {
+        if (!localStorage.getItem(`case_snapshot_${c.id}`)) {
+          localStorage.setItem(`case_snapshot_${c.id}`, JSON.stringify(c));
+        }
+        const integrity = await integrityService.verifyCase(c);
+        return { ...c, integrity };
+      }));
+      setCases(verifiedData);
+    } else {
+      setCases([]);
+    }
     setLoading(false);
   };
 
@@ -122,6 +135,30 @@ const MyCases = () => {
                     <span className="px-2 py-0.5 rounded-pill text-xs font-body font-semibold" style={{ color: statusColor[cs.status] || '#6b7280', background: `${statusColor[cs.status] || '#6b7280'}15` }}>
                       {statusLabel[cs.status] || cs.status}
                     </span>
+                    {cs.integrity && (
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-pill text-xs font-body font-semibold flex items-center gap-1 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/proof/${cs.id}`);
+                              }}
+                              style={{
+                                background: cs.integrity.status === 'valid' ? 'rgba(10,158,110,0.1)' : cs.integrity.status === 'tampered' ? 'rgba(239,68,68,0.1)' : 'rgba(249,115,22,0.1)',
+                                color: cs.integrity.status === 'valid' ? '#0a9e6e' : cs.integrity.status === 'tampered' ? '#ef4444' : '#f97316'
+                              }}>
+                          {cs.integrity.status === 'valid' ? '🔒 Blockchain Secured' : cs.integrity.status === 'tampered' ? '⚠️ Tampering Detected' : '⏳ Pending Sync'}
+                        </span>
+                        {cs.integrity.status === 'valid' && (
+                          <span className="text-[10px] text-muted-foreground underline cursor-pointer hover:text-primary transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/proof/${cs.id}`);
+                                }}>
+                            View Proof
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <span className="text-xs font-mono" style={{ color: '#6b7280' }}>{new Date(cs.created_at).toLocaleDateString()}</span>
                 </div>

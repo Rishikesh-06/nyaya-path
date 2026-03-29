@@ -39,6 +39,7 @@ import CaseChat from "./pages/CaseChat";
 import VideoCallPage from "./pages/VideoCallPage";
 import LawyerChat from "./pages/lawyer/LawyerChat";
 import MentorshipChat from "./pages/MentorshipChat";
+import ProofPage from "./pages/ProofPage";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ const AppRoutes = () => {
 
       {/* ── Video Call — full screen ── */}
       <Route path="/video-call/:caseId" element={isAuthenticated ? <VideoCallPage /> : <Navigate to="/welcome" />} />
+      <Route path="/proof/:caseId" element={<ProofPage />} />
 
       <Route path="/dashboard" element={isAuthenticated && user?.role === 'victim' ? <VictimLayout /> : <Navigate to="/welcome" />}>
         <Route index element={<VictimHome />} />

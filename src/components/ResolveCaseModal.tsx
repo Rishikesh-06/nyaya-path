@@ -4,6 +4,7 @@ import { X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { updateCaseWithAudit } from '@/services/caseAuditService';
 
 interface Props {
   caseData: any;
@@ -75,12 +76,12 @@ const ResolveCaseModal = ({ caseData, onClose, onResolved }: Props) => {
     setLoading(true);
     try {
       const resolvedAt = new Date().toISOString();
-      const { error } = await supabase.from('cases').update({
+      const { error } = await updateCaseWithAudit(caseData.id, {
         status: 'resolved',
         outcome,
         fee_charged: feeCharged,
         resolved_at: resolvedAt,
-      }).eq('id', caseData.id);
+      });
       if (error) throw error;
 
       const createdAt = new Date(caseData.created_at).getTime();

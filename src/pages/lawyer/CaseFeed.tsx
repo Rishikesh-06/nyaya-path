@@ -3,8 +3,11 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import TiltCard from '@/components/TiltCard';
 import ScrollReveal from '@/components/ScrollReveal';
+import { integrityService } from '@/services/integrityService';
+import { updateCaseWithAudit } from '@/services/caseAuditService';
 
 const categoryColors: Record<string, string> = {
   'Tenant Rights': 'hsl(210, 56%, 24%)', 'Labor Law': 'hsl(160, 87%, 33%)', 'Domestic Violence': 'hsl(0, 84%, 60%)', 'Education': 'hsl(25, 95%, 53%)', 'Criminal': 'hsl(270, 80%, 60%)', 'Consumer Rights': 'hsl(43, 72%, 47%)', 'Property': 'hsl(179, 80%, 25%)',
@@ -75,6 +78,7 @@ const updateLawyerScore = async (lawyerId: string, eventType: string, extra?: an
 const CaseFeed = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All Cases');
@@ -90,7 +94,18 @@ const CaseFeed = () => {
       .limit(20);
     if (filter !== 'All Cases') query = query.eq('category', filter);
     const { data } = await query;
-    setCases(data || []);
+    if (data) {
+      const verifiedData = await Promise.all(data.map(async (c: any) => {
+        if (!localStorage.getItem(`case_snapshot_${c.id}`)) {
+          localStorage.setItem(`case_snapshot_${c.id}`, JSON.stringify(c));
+        }
+        const integrity = await integrityService.verifyCase(c);
+        return { ...c, integrity };
+      }));
+      setCases(verifiedData);
+    } else {
+      setCases([]);
+    }
     setLoading(false);
   };
 
@@ -117,14 +132,13 @@ const CaseFeed = () => {
     if (!user || accepting) return;
     setAccepting(caseId);
     try {
-      const { data: updatedCase, error } = await supabase
-        .from('cases')
-        .update({ status: 'assigned', assigned_lawyer_id: user.id })
-        .eq('id', caseId)
-        .eq('status', 'open')
-        .is('assigned_lawyer_id', null)
-        .select()
-        .single();
+      const { data: checkCase } = await supabase.from('cases').select('*').eq('id', caseId).eq('status', 'open').is('assigned_lawyer_id', null).single();
+      if (!checkCase) throw new Error("Case unavailable");
+
+      const { data: updatedCase, error } = await updateCaseWithAudit(caseId, { 
+        status: 'assigned', 
+        assigned_lawyer_id: user.id 
+      });
 
       if (error || !updatedCase) {
         toast({ title: 'Case no longer available', description: 'This case was just accepted by another lawyer.', variant: 'destructive' });
@@ -138,7 +152,7 @@ const CaseFeed = () => {
       const lawyerName = lawyerProfile?.full_name || 'Your lawyer';
 
       await supabase.from('notifications').insert({
-        user_id: updatedCase.victim_id,
+        user_id: (updatedCase as any).victim_id,
         type: 'case_accepted',
         title: 'A lawyer accepted your case',
         body: `${lawyerName} has accepted your case and wants to help you.`,
@@ -188,6 +202,30 @@ const CaseFeed = () => {
                       <span className="px-2 py-0.5 rounded-pill text-xs font-body font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: categoryColors[c.category] || '#fff' }}>{c.category}</span>
                       <span className="text-xs font-body text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
                       {c.fir_verified && <span className="px-2 py-0.5 rounded-pill text-xs font-body" style={{ background: 'rgba(10,158,110,0.1)', color: '#0a9e6e' }}>FIR Verified</span>}
+                      {c.integrity && (
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-pill text-xs font-body font-semibold flex items-center gap-1 cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/proof/${c.id}`);
+                                }}
+                                style={{
+                                  background: c.integrity.status === 'valid' ? 'rgba(10,158,110,0.1)' : c.integrity.status === 'tampered' ? 'rgba(239,68,68,0.1)' : 'rgba(249,115,22,0.1)',
+                                  color: c.integrity.status === 'valid' ? '#0a9e6e' : c.integrity.status === 'tampered' ? '#ef4444' : '#f97316'
+                                }}>
+                            {c.integrity.status === 'valid' ? '🔒 Blockchain Secured' : c.integrity.status === 'tampered' ? '⚠️ Tampering Detected' : '⏳ Pending Sync'}
+                          </span>
+                          {c.integrity.status === 'valid' && (
+                            <span className="text-[10px] text-muted-foreground underline cursor-pointer hover:text-primary transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/proof/${c.id}`);
+                                  }}>
+                              View Proof
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <p className="text-sm font-body text-muted-foreground mb-3">{cleanSummary(c.ai_summary || c.description || 'No description provided.')}</p>
 

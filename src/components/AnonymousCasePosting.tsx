@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
+import { generateCaseHash } from '@/utils/hashUtils';
 
 interface Props { onClose: () => void; }
 
@@ -175,9 +176,24 @@ const AnonymousCasePosting = ({ onClose }: Props) => {
     setProcessing(true);
     try {
       const catLabel = isTelugu ? catMap.find(c => c.en === category)?.te || category : category;
-      const { data, error } = await supabase.from('cases').insert({ victim_id: user.id, title: `${catLabel} ${t.caseWord}`, category, description, fir_number: firNumber || null, fir_verified: firVerified, is_anonymous: true, ai_summary: aiSummary, status: 'open' }).select().single();
+      const { data: newCase, error } = await supabase.from('cases').insert({ victim_id: user.id, title: `${catLabel} ${t.caseWord}`, category, description, fir_number: firNumber || null, fir_verified: firVerified, is_anonymous: true, ai_summary: aiSummary, status: 'open' }).select().single();
       if (error) throw error;
-      if (data) setCaseId(data.id);
+      if (newCase) {
+        setCaseId(newCase.id);
+        
+        const caseHash = await generateCaseHash({
+          title: newCase.title,
+          description: newCase.description,
+          user_id: user.id,
+          created_at: newCase.created_at
+        });
+
+        await supabase.from('cases').update({
+          integrity_status: 'valid',
+          case_hash: caseHash,
+          blockchain_status: 'secured'
+        }).eq('id', newCase.id);
+      }
       setStep(6);
     } catch { toast({ title: t.postFailed, variant: 'destructive' }); }
     finally { setProcessing(false); }

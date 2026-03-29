@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nyaya</string>
+    <string name="title_activity_main">Nyaya</string>
+    <string name="package_name">com.nyaya.app</string>
+    <string name="custom_url_scheme">com.nyaya.app</string>
+</resources>
