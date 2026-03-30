@@ -7,48 +7,36 @@ export class IntegrityService {
     if (!caseItem || !caseItem.id) return { status: 'unknown' };
 
     try {
-      // 1. Recompute the hash from current data
+      // 1. If there's no stored hash yet, assume it's valid to prevent false tampered states
+      if (!caseItem.case_hash) {
+        return { status: 'valid', message: 'Verified on Chain (Demo Mode)' };
+      }
+
+      // 2. Recompute the hash from current data
       const recomputedHash = await generateCaseHash({
         title: caseItem.title,
         description: caseItem.description,
-        user_id: caseItem.victim_id || caseItem.user_id, // depends on your schema
+        user_id: caseItem.victim_id || caseItem.user_id, // check schema
         created_at: caseItem.created_at
       });
 
-      // 2. Default to valid if no previous hash existed, avoiding 'pending' or 'tampered'
-      if (!caseItem.case_hash) {
-        return { status: 'valid', message: 'Verified on Chain (Demo Mode)', case_hash: recomputedHash };
+      // 3. Compare precisely against the stored original case_hash
+      if (recomputedHash !== caseItem.case_hash) {
+        // ALWAYS mark as tampered if it differs—do NOT check fields against localStorage
+        await this.markTampered(caseItem.id);
+        return { 
+          status: 'tampered', 
+          message: 'Database hash mismatch', 
+          case_hash: caseItem.case_hash, 
+          recomputedHash 
+        };
+      } else {
+        return { 
+          status: 'valid', 
+          message: 'Verified on Chain (Demo Mode)', 
+          case_hash: caseItem.case_hash 
+        };
       }
-
-      if (caseItem.case_hash !== recomputedHash) {
-        // Tampering Check Logic: Require actual field differences
-        const snapStr = localStorage.getItem(`case_snapshot_${caseItem.id}`);
-        let actualFieldChanged = false;
-        if (snapStr) {
-          try {
-            const snapshot = JSON.parse(snapStr);
-            actualFieldChanged = 
-              snapshot.title !== caseItem.title ||
-              snapshot.description !== caseItem.description ||
-              String(snapshot.victim_id) !== String(caseItem.victim_id);
-          } catch(e) {}
-        } else {
-          // If no snapshot exists to verify against, we must trust the algorithm check natively
-          actualFieldChanged = true; 
-        }
-
-        if (actualFieldChanged) {
-          await this.markTampered(caseItem.id);
-          return { status: 'tampered', message: 'Database hash mismatch', case_hash: caseItem.case_hash, recomputedHash };
-        } else {
-          // Graceful fallback: algorithm migration mismatch but fields match securely
-          return { status: 'valid', message: 'Verified on Chain (Algorithm Migration)', case_hash: caseItem.case_hash };
-        }
-      }
-
-      // 3. Match successful - Simulate blockchain valid state
-      return { status: 'valid', message: 'Verified on Chain (Demo Mode)', case_hash: caseItem.case_hash };
-
     } catch (error) {
       console.error("Integrity verification failed:", error);
       return { status: 'unknown' };

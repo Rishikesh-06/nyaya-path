@@ -118,7 +118,7 @@ const RoleSelection = () => {
             <Scale className="w-10 h-10 text-nyaya-gold" strokeWidth={1.5} />
           </div>
         </motion.div>
-        <motion.h1 className="text-3xl sm:text-5xl md:text-[56px] font-display font-bold mb-3 text-foreground text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+        <motion.h1 className="text-3xl sm:text-5xl md:text-[56px] font-display font-bold mb-3 text-white text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
           Welcome to <span className="gold-shimmer">Nyaya</span>
         </motion.h1>
         <motion.p className="text-lg font-body" style={{ color: 'rgba(255,255,255,0.6)' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
@@ -139,7 +139,7 @@ const RoleSelection = () => {
                       </div>
                       <div className="absolute inset-0 rounded-full blur-2xl" style={{ background: `hsla(${role.accentHsl}, 0.15)`, transform: 'scale(2)' }} />
                     </div>
-                    <h3 className="text-xl md:text-2xl font-display font-semibold mb-2 text-foreground group-hover:gold-shimmer nyaya-transition">{role.title}</h3>
+                    <h3 className="text-xl md:text-2xl font-display font-semibold mb-2 text-white group-hover:gold-shimmer nyaya-transition">{role.title}</h3>
                     <p className="text-sm font-body" style={{ color: 'rgba(255,255,255,0.6)', lineHeight: '1.6' }}>{role.description}</p>
                     <ArrowRight className="w-4 h-4 mt-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 nyaya-transition" style={{ color: role.accentColor }} />
                   </TiltCard>
@@ -155,7 +155,7 @@ const RoleSelection = () => {
                   <span className="px-4 py-1.5 rounded-pill text-sm font-body font-medium" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: selectedRoleData.accentColor }}>
                     Signing up as: {selected === 'victim' ? 'Someone who needs help' : selected === 'lawyer' ? 'Lawyer' : 'Student'}
                   </span>
-                  <button onClick={handleBack} className="text-sm font-body flex items-center gap-1 nyaya-transition text-muted-foreground hover:text-foreground">
+                  <button onClick={handleBack} className="text-sm font-body flex items-center gap-1 nyaya-transition text-white/60 hover:text-white">
                     <ArrowLeft className="w-3 h-3" /> Change
                   </button>
                 </div>
@@ -164,21 +164,21 @@ const RoleSelection = () => {
               <form onSubmit={step === 'signup' ? handleSignup : handleLogin} className="space-y-4">
                 {step === 'signup' && (
                   <div>
-                    <input type="text" placeholder="Full Name" className="w-full px-4 py-3.5 rounded-[10px] font-body text-sm nyaya-transition input-glow text-foreground placeholder:text-muted-foreground" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${errors.name ? '#ef4444' : 'rgba(255,255,255,0.1)'}` }} value={formData.name} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} />
+                    <input type="text" placeholder="Full Name" className="w-full px-4 py-3.5 rounded-[10px] font-body text-sm nyaya-transition input-glow text-white placeholder:text-white/50" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${errors.name ? '#ef4444' : 'rgba(255,255,255,0.1)'}` }} value={formData.name} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} />
                     {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
                   </div>
                 )}
                 <div>
-                  <input type="email" placeholder="Email" className="w-full px-4 py-3.5 rounded-[10px] font-body text-sm nyaya-transition input-glow text-foreground placeholder:text-muted-foreground" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${errors.email ? '#ef4444' : 'rgba(255,255,255,0.1)'}` }} value={formData.email} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))} />
+                  <input type="email" placeholder="Email" className="w-full px-4 py-3.5 rounded-[10px] font-body text-sm nyaya-transition input-glow text-white placeholder:text-white/50" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${errors.email ? '#ef4444' : 'rgba(255,255,255,0.1)'}` }} value={formData.email} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))} />
                   {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email}</p>}
                 </div>
                 <div>
-                  <input type="password" placeholder="Password" className="w-full px-4 py-3.5 rounded-[10px] font-body text-sm nyaya-transition input-glow text-foreground placeholder:text-muted-foreground" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${errors.password ? '#ef4444' : 'rgba(255,255,255,0.1)'}` }} value={formData.password} onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))} />
+                  <input type="password" placeholder="Password" className="w-full px-4 py-3.5 rounded-[10px] font-body text-sm nyaya-transition input-glow text-white placeholder:text-white/50" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${errors.password ? '#ef4444' : 'rgba(255,255,255,0.1)'}` }} value={formData.password} onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))} />
                   {errors.password && <p className="text-xs text-red-400 mt-1">{errors.password}</p>}
                 </div>
                 {step === 'signup' && (
                   <div>
-                    <input type="password" placeholder="Confirm Password" className="w-full px-4 py-3.5 rounded-[10px] font-body text-sm nyaya-transition input-glow text-foreground placeholder:text-muted-foreground" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${errors.confirm ? '#ef4444' : 'rgba(255,255,255,0.1)'}` }} value={formData.confirm} onChange={e => setFormData(prev => ({ ...prev, confirm: e.target.value }))} />
+                    <input type="password" placeholder="Confirm Password" className="w-full px-4 py-3.5 rounded-[10px] font-body text-sm nyaya-transition input-glow text-white placeholder:text-white/50" style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${errors.confirm ? '#ef4444' : 'rgba(255,255,255,0.1)'}` }} value={formData.confirm} onChange={e => setFormData(prev => ({ ...prev, confirm: e.target.value }))} />
                     {errors.confirm && <p className="text-xs text-red-400 mt-1">{errors.confirm}</p>}
                   </div>
                 )}
@@ -190,12 +190,12 @@ const RoleSelection = () => {
 
               <motion.div className="mt-6 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
                 {step === 'signup' ? (
-                  <p className="text-xs font-body text-muted-foreground">
+                  <p className="text-xs font-body text-white/60">
                     Already have an account?{' '}
                     <button onClick={() => setStep('login')} className="underline text-nyaya-gold">Sign In</button>
                   </p>
                 ) : (
-                  <p className="text-xs font-body text-muted-foreground">
+                  <p className="text-xs font-body text-white/60">
                     Don't have an account?{' '}
                     <button onClick={() => { setStep('select'); setSelected(null); }} className="underline text-nyaya-gold">Sign Up</button>
                   </p>

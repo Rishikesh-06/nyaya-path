@@ -111,7 +111,6 @@ const VictimLayout = () => {
           </nav>
         </div>
         <div className="mt-auto p-4" style={{ borderTop: `1px solid ${colors.sidebarBorder}` }}>
-          <button onClick={() => setPanicMode(true)} className="text-xs font-body nyaya-transition" style={{ color: colors.textMuted }}>{t('victim_nav', 'panic')}</button>
         </div>
       </aside>
 
@@ -150,7 +149,6 @@ const VictimLayout = () => {
             </motion.div>
           </AnimatePresence>
         </main>
-        <button onClick={() => setPanicMode(true)} className="md:hidden fixed bottom-4 right-4 text-xs font-body" style={{ color: colors.textMuted }}>{t('victim_nav', 'panic')}</button>
       </div>
     </div>
   );

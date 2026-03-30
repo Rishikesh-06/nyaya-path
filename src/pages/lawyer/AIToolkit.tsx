@@ -6,6 +6,7 @@ import ScrollReveal from '@/components/ScrollReveal';
 import { useResponsive } from '@/hooks/useResponsive';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const TOOL_PROMPTS: Record<string, string> = {
   case_researcher: `You are an expert Indian legal researcher. Given the question below, provide:
@@ -39,7 +40,7 @@ const timeAgo = (date: string) => {
 };
 
 // ── Editable Document ─────────────────────────────────────────────────────────
-const EditableDocument = ({ text, onValuesChange }: { text: string; onValuesChange: (v: Record<string, string>) => void }) => {
+const EditableDocument = ({ text, onValuesChange, theme }: { text: string; onValuesChange: (v: Record<string, string>) => void; theme: any }) => {
   const [values, setValues] = useState<Record<string, string>>({});
   const placeholders = Array.from(new Set([...text.matchAll(/\[([^\]]+)\]/g)].map(m => m[1])));
 
@@ -64,15 +65,15 @@ const EditableDocument = ({ text, onValuesChange }: { text: string; onValuesChan
           const val = values[key] || '';
           return (
             <input key={i} value={val} onChange={e => handleChange(key, e.target.value)} placeholder={key}
-              style={{ display: 'inline', minWidth: '80px', width: `${Math.max(key.length, val.length) * 9 + 24}px`, background: val ? 'rgba(201,162,39,0.08)' : 'rgba(201,162,39,0.18)', border: 'none', borderBottom: `2px solid ${val ? 'rgba(201,162,39,0.4)' : '#c9a227'}`, padding: '0 4px', color: val ? '#ffffff' : '#f0c040', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', outline: 'none', cursor: 'text', borderRadius: '2px' }}
+              style={{ display: 'inline', minWidth: '80px', width: `${Math.max(key.length, val.length) * 9 + 24}px`, background: val ? 'rgba(201,162,39,0.08)' : 'rgba(201,162,39,0.18)', border: 'none', borderBottom: `2px solid ${val ? 'rgba(201,162,39,0.4)' : '#c9a227'}`, padding: '0 4px', color: val ? theme.colors.textPrimary : '#c9a227', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', outline: 'none', cursor: 'text', borderRadius: '2px' }}
             />
           );
         }
         return <span key={i}>{part}</span>;
       });
 
-    if (isBullet) return <div key={idx} style={{ display: 'flex', gap: '8px', margin: '4px 0 4px 16px' }}><span style={{ color: '#c9a227', fontWeight: 700, flexShrink: 0 }}>•</span><p style={{ margin: 0, color: 'rgba(255,255,255,0.85)', fontSize: '14px', lineHeight: '1.7' }}>{renderParts(clean)}</p></div>;
-    return <p key={idx} style={{ margin: isGold ? '18px 0 6px' : isBold ? '14px 0 4px' : '5px 0', color: isGold ? '#e2c97e' : isBold ? '#ffffff' : 'rgba(255,255,255,0.85)', fontWeight: (isGold || isBold) ? 700 : 400, fontSize: isGold ? '15px' : '14px', lineHeight: '1.75', ...(isGold ? { borderBottom: '1px solid rgba(201,162,39,0.2)', paddingBottom: '4px' } : {}) }}>{renderParts(clean)}</p>;
+    if (isBullet) return <div key={idx} style={{ display: 'flex', gap: '8px', margin: '4px 0 4px 16px' }}><span style={{ color: '#c9a227', fontWeight: 700, flexShrink: 0 }}>•</span><p style={{ margin: 0, color: theme.colors.textSecondary, fontSize: '14px', lineHeight: '1.7' }}>{renderParts(clean)}</p></div>;
+    return <p key={idx} style={{ margin: isGold ? '18px 0 6px' : isBold ? '14px 0 4px' : '5px 0', color: isGold ? '#c9a227' : isBold ? theme.colors.textHeading : theme.colors.textPrimary, fontWeight: (isGold || isBold) ? 700 : 400, fontSize: isGold ? '15px' : '14px', lineHeight: '1.75', ...(isGold ? { borderBottom: '1px solid rgba(201,162,39,0.2)', paddingBottom: '4px' } : {}) }}>{renderParts(clean)}</p>;
   };
 
   return (
@@ -83,11 +84,11 @@ const EditableDocument = ({ text, onValuesChange }: { text: string; onValuesChan
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '10px' }}>
             {placeholders.map(key => (
               <div key={key}>
-                <label style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px', display: 'block', marginBottom: '3px' }}>{key}</label>
+                <label style={{ color: theme.colors.textMuted, fontSize: '11px', display: 'block', marginBottom: '3px' }}>{key}</label>
                 <input value={values[key] || ''} onChange={e => handleChange(key, e.target.value)} placeholder={`Enter ${key}`}
-                  style={{ width: '100%', padding: '7px 10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', color: '#fff', fontFamily: 'inherit', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '7px 10px', background: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', border: `1px solid ${theme.colors.border}`, borderRadius: '8px', color: theme.colors.textPrimary, fontFamily: 'inherit', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
                   onFocus={e => (e.target.style.borderColor = 'rgba(201,162,39,0.5)')}
-                  onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.12)')}
+                  onBlur={e => (e.target.style.borderColor = theme.colors.border)}
                 />
               </div>
             ))}
@@ -100,22 +101,23 @@ const EditableDocument = ({ text, onValuesChange }: { text: string; onValuesChan
 };
 
 // ── Standard formatter ────────────────────────────────────────────────────────
-const formatAIResult = (text: string) => {
+const formatAIResult = (text: string, theme: any) => {
   if (!text) return null;
   return text.split('\n').map((line, index) => {
     const trimmed = line.trim();
     if (!trimmed) return <div key={index} style={{ height: '12px' }} />;
-    if (/^#+\s/.test(trimmed)) return <p key={index} style={{ fontWeight: 700, color: '#e2c97e', fontSize: '16px', margin: '20px 0 8px', borderBottom: '1px solid rgba(201,162,39,0.3)', paddingBottom: '6px' }}>{trimmed.replace(/^#+\s*/, '')}</p>;
-    if (/^\d+\.\s+[A-Z]/.test(trimmed)) return <p key={index} style={{ fontWeight: 700, color: '#e2c97e', fontSize: '15px', margin: '20px 0 8px' }}>{trimmed}</p>;
-    if (trimmed.startsWith('**') || (trimmed.endsWith(':') && trimmed.length < 80)) return <p key={index} style={{ fontWeight: 700, color: '#ffffff', fontSize: '14px', margin: '14px 0 4px' }}>{trimmed.replace(/\*\*/g, '')}</p>;
-    if (/^[•\-*]\s/.test(trimmed)) return <div key={index} style={{ display: 'flex', gap: '8px', margin: '6px 0', paddingLeft: '8px' }}><span style={{ color: '#e2c97e', fontWeight: 700, flexShrink: 0 }}>•</span><p style={{ margin: 0, color: 'rgba(255,255,255,0.82)', fontSize: '14px', lineHeight: '1.6' }}>{trimmed.replace(/^[•\-*]\s*/, '').replace(/\*\*/g, '')}</p></div>;
-    return <p key={index} style={{ margin: '6px 0', color: 'rgba(255,255,255,0.82)', fontSize: '14px', lineHeight: '1.7' }}>{trimmed.replace(/\*\*/g, '')}</p>;
+    if (/^#+\s/.test(trimmed)) return <p key={index} style={{ fontWeight: 700, color: '#c9a227', fontSize: '16px', margin: '20px 0 8px', borderBottom: '1px solid rgba(201,162,39,0.3)', paddingBottom: '6px' }}>{trimmed.replace(/^#+\s*/, '')}</p>;
+    if (/^\d+\.\s+[A-Z]/.test(trimmed)) return <p key={index} style={{ fontWeight: 700, color: '#c9a227', fontSize: '15px', margin: '20px 0 8px' }}>{trimmed}</p>;
+    if (trimmed.startsWith('**') || (trimmed.endsWith(':') && trimmed.length < 80)) return <p key={index} style={{ fontWeight: 700, color: theme.colors.textHeading, fontSize: '14px', margin: '14px 0 4px' }}>{trimmed.replace(/\*\*/g, '')}</p>;
+    if (/^[•\-*]\s/.test(trimmed)) return <div key={index} style={{ display: 'flex', gap: '8px', margin: '6px 0', paddingLeft: '8px' }}><span style={{ color: '#c9a227', fontWeight: 700, flexShrink: 0 }}>•</span><p style={{ margin: 0, color: theme.colors.textSecondary, fontSize: '14px', lineHeight: '1.6' }}>{trimmed.replace(/^[•\-*]\s*/, '').replace(/\*\*/g, '')}</p></div>;
+    return <p key={index} style={{ margin: '6px 0', color: theme.colors.textPrimary, fontSize: '14px', lineHeight: '1.7' }}>{trimmed.replace(/\*\*/g, '')}</p>;
   });
 };
 
 // ── Main AIToolkit ────────────────────────────────────────────────────────────
 const AIToolkit = () => {
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [result, setResult] = useState('');
@@ -251,9 +253,9 @@ const AIToolkit = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <button onClick={() => { setActiveTool(null); setResult(''); setQuery(''); setDocValues({}); setShowHistory(false); }} className="text-xs font-body text-muted-foreground hover:text-foreground nyaya-transition">← Back to tools</button>
-            <button
+              <button
               onClick={() => { setShowHistory(!showHistory); if (!showHistory) loadHistory(activeTool); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px', background: showHistory ? 'rgba(201,162,39,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${showHistory ? 'rgba(201,162,39,0.3)' : 'rgba(255,255,255,0.1)'}`, color: showHistory ? '#c9a227' : 'rgba(255,255,255,0.6)', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: showHistory ? 600 : 400 }}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px', background: showHistory ? 'rgba(201,162,39,0.15)' : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'), border: `1px solid ${showHistory ? 'rgba(201,162,39,0.3)' : colors.border}`, color: showHistory ? '#c9a227' : colors.textSecondary, fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: showHistory ? 600 : 500 }}
             >
               <History className="w-3 h-3" /> History
             </button>
@@ -263,25 +265,25 @@ const AIToolkit = () => {
           <AnimatePresence>
             {showHistory && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                style={{ overflow: 'hidden', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '16px' }}>
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontWeight: 600, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                style={{ overflow: 'hidden', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', border: `1px solid ${colors.border}`, borderRadius: '14px', padding: '16px' }}>
+                <p style={{ color: colors.textSecondary, fontSize: '12px', fontWeight: 600, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {currentTool?.title} History
                 </p>
                 {historyLoading ? (
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}><Loader2 className="w-5 h-5 animate-spin" style={{ color: '#c9a227' }} /></div>
                 ) : history.length === 0 ? (
-                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>No history yet. Run a query to see it here.</p>
+                  <p style={{ color: colors.textMuted, fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>No history yet. Run a query to see it here.</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
                     {history.map(item => (
-                      <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}
+                      <div key={item.id} className="hover:bg-opacity-80 transition-colors" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', borderRadius: '10px', border: `1px solid ${colors.border}`, cursor: 'pointer', boxShadow: isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.05)' }}
                         onClick={() => loadFromHistory(item)}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: 0, color: 'rgba(255,255,255,0.85)', fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.query}</p>
-                          <p style={{ margin: '2px 0 0', color: 'rgba(255,255,255,0.35)', fontSize: '11px' }}>{timeAgo(item.created_at)}</p>
+                          <p style={{ margin: 0, color: colors.textPrimary, fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.query}</p>
+                          <p style={{ margin: '2px 0 0', color: colors.textMuted, fontSize: '11px' }}>{timeAgo(item.created_at)}</p>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                          <ChevronRight className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                          <ChevronRight className="w-3 h-3" style={{ color: colors.textMuted }} />
                           <button
                             onClick={e => { e.stopPropagation(); deleteHistory(item.id); }}
                             style={{ padding: '3px 6px', borderRadius: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: '11px', cursor: 'pointer' }}
@@ -298,15 +300,15 @@ const AIToolkit = () => {
           </AnimatePresence>
 
           {/* Tool Panel */}
-          <div className="glass-card rounded-2xl p-4 md:p-6">
+          <div className="glass-card rounded-2xl p-4 md:p-6" style={{ background: colors.cardBgSolid, borderColor: colors.border }}>
             <div className="flex items-center gap-3 mb-4">
               {currentTool && <currentTool.icon className="w-5 md:w-6 h-5 md:h-6" style={{ color: currentTool.color }} strokeWidth={1.5} />}
-              <h3 className="font-display font-semibold text-lg md:text-xl text-foreground">{currentTool?.title}</h3>
+              <h3 className="font-display font-semibold text-lg md:text-xl" style={{ color: colors.textHeading }}>{currentTool?.title}</h3>
               {isDocDrafter && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '9999px', background: 'rgba(10,158,110,0.15)', color: '#0a9e6e', fontWeight: 600 }}>✏️ Editable + PDF</span>}
             </div>
 
             <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} gap-2 mb-4`}>
-              <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && runTool()} placeholder={currentTool?.placeholder} className="flex-1 px-4 py-3 rounded-xl font-body text-sm bg-transparent outline-none min-w-0" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} />
+              <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && runTool()} placeholder={currentTool?.placeholder} className="flex-1 px-4 py-3 rounded-xl font-body text-sm bg-transparent outline-none min-w-0" style={{ background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff', border: `1px solid ${colors.border}`, color: colors.textPrimary, boxShadow: isDark ? 'none' : 'inset 0 1px 2px rgba(0,0,0,0.02)' }} />
               <motion.button onClick={runTool} disabled={loading || !query.trim()} className="px-4 py-3 rounded-xl font-body text-sm font-semibold btn-shine flex items-center justify-center gap-2" style={{ background: currentTool?.color || '#c9a227', color: '#fff', width: isMobile ? '100%' : 'auto' }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 {loading ? 'Thinking...' : 'Run'}
@@ -316,18 +318,18 @@ const AIToolkit = () => {
             {result && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                  <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                  <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 14px', borderRadius: '8px', background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', border: `1px solid ${colors.border}`, color: colors.textSecondary, fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
-                  <button onClick={downloadPDF} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 14px', borderRadius: '8px', background: 'rgba(201,162,39,0.15)', border: '1px solid rgba(201,162,39,0.3)', color: '#c9a227', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                  <button onClick={downloadPDF} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 14px', borderRadius: '8px', background: 'rgba(201,162,39,0.1)', border: '1px solid rgba(201,162,39,0.3)', color: '#c9a227', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
                     <Download className="w-3 h-3" /> Download PDF
                   </button>
                 </div>
-                <div style={{ padding: '20px 24px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', maxHeight: isMobile ? '65vh' : '560px', overflowY: 'auto' }}>
+                <div style={{ padding: '20px 24px', background: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff', border: `1px solid ${colors.border}`, borderRadius: '12px', maxHeight: isMobile ? '65vh' : '560px', overflowY: 'auto', boxShadow: isDark ? 'none' : 'inset 0 1px 3px rgba(0,0,0,0.02)' }}>
                   {isDocDrafter
-                    ? <EditableDocument text={result} onValuesChange={setDocValues} />
-                    : formatAIResult(result)
+                    ? <EditableDocument text={result} onValuesChange={setDocValues} theme={{ colors, isDark }} />
+                    : formatAIResult(result, { colors, isDark })
                   }
                 </div>
               </motion.div>

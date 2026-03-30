@@ -176,26 +176,41 @@ const AnonymousCasePosting = ({ onClose }: Props) => {
     setProcessing(true);
     try {
       const catLabel = isTelugu ? catMap.find(c => c.en === category)?.te || category : category;
-      const { data: newCase, error } = await supabase.from('cases').insert({ victim_id: user.id, title: `${catLabel} ${t.caseWord}`, category, description, fir_number: firNumber || null, fir_verified: firVerified, is_anonymous: true, ai_summary: aiSummary, status: 'open' }).select().single();
+      const createdAt = new Date().toISOString();
+      const caseTitle = `${catLabel} ${t.caseWord}`;
+      
+      const caseHash = await generateCaseHash({
+        title: caseTitle.trim(),
+        description: description.trim(),
+        user_id: String(user.id),
+        created_at: createdAt
+      });
+
+      const { data: newCase, error } = await supabase.from('cases').insert({ 
+        victim_id: user.id, 
+        title: caseTitle, 
+        category, 
+        description, 
+        fir_number: firNumber || null, 
+        fir_verified: firVerified, 
+        is_anonymous: true, 
+        ai_summary: aiSummary, 
+        status: 'open',
+        created_at: createdAt,
+        case_hash: caseHash,
+        integrity_status: 'valid',
+        blockchain_status: 'secured'
+      }).select().single();
+      
       if (error) throw error;
       if (newCase) {
         setCaseId(newCase.id);
-        
-        const caseHash = await generateCaseHash({
-          title: newCase.title,
-          description: newCase.description,
-          user_id: user.id,
-          created_at: newCase.created_at
-        });
-
-        await supabase.from('cases').update({
-          integrity_status: 'valid',
-          case_hash: caseHash,
-          blockchain_status: 'secured'
-        }).eq('id', newCase.id);
       }
       setStep(6);
-    } catch { toast({ title: t.postFailed, variant: 'destructive' }); }
+    } catch (err: any) { 
+      toast({ title: t.postFailed, description: err.message || 'Unknown error', variant: 'destructive' }); 
+      console.error("Insert error:", err);
+    }
     finally { setProcessing(false); }
   };
 

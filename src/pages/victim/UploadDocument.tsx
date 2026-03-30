@@ -164,10 +164,15 @@ const UploadDocument = () => {
   );
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <div style={{ width: isMobile ? '100%' : historyOpen ? 220 : 0, flexShrink: 0, overflow: 'hidden', transition: 'width 0.2s ease', borderRight: `1px solid ${colors.border}`, background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.5)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '12px', flexShrink: 0 }}>
+    <div className="flex h-full w-full overflow-hidden relative">
+      <div style={{ width: isMobile ? (historyOpen ? '100%' : 0) : (historyOpen ? 260 : 0), flexShrink: 0, overflow: 'hidden', transition: 'width 0.2s ease', borderRight: `1px solid ${colors.border}`, background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', position: isMobile ? 'absolute' : 'relative', zIndex: isMobile ? 20 : 'auto', height: '100%', left: 0, top: 0 }}>
+        <div style={{ padding: '12px 16px', flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <p className="text-xs font-body font-semibold uppercase tracking-wider" style={{ color: colors.textMuted }}>Document History</p>
+          {isMobile && (
+            <button onClick={() => setHistoryOpen(false)} style={{ background: 'none', border: 'none', color: colors.textSecondary, padding: '4px' }}>
+              <Trash2 className="w-4 h-4" style={{ display: 'none' }} />
+            </button>
+          )}
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px 12px 8px' }}>
           {loadingHistory
@@ -192,7 +197,15 @@ const UploadDocument = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 md:p-6">
+      <div className="flex-1 flex flex-col w-full h-full overflow-hidden relative">
+        <div className="flex items-center justify-between px-3 md:px-6 py-3" style={{ borderBottom: `1px solid ${colors.border}`, flexShrink: 0 }}>
+          <button onClick={() => setHistoryOpen(v => !v)} className="w-8 h-8 rounded-lg flex items-center justify-center nyaya-transition hover:bg-white/10" style={{ border: `1px solid ${colors.border}` }}>
+            <FileText className="w-4 h-4" style={{ color: colors.textSecondary }} strokeWidth={1.5} />
+          </button>
+          <h2 className="font-display font-semibold" style={{ color: colors.textHeading }}>Document Analyzer</h2>
+          <div className="w-8" />
+        </div>
+        <div className="flex-1 overflow-y-auto p-3 md:p-6" onClick={() => { if (isMobile && historyOpen) setHistoryOpen(false); }}>
         {analyzing ? (
           <div className="max-w-3xl flex flex-col items-center justify-center py-16">
             <div className="w-10 h-10 rounded-full border-2 border-nyaya-gold border-t-transparent animate-spin mb-4" />
@@ -202,7 +215,7 @@ const UploadDocument = () => {
           <AnalysisResults analysis={analysis} up={up} language={language} ListenButton={ListenButton} onUploadAnother={clearSelection} isDark={isDark} colors={colors} />
         ) : (
           <div className="max-w-3xl">
-            <h2 className="font-display text-xl md:text-2xl font-bold mb-4 md:mb-6" style={{ color: colors.textHeading }}>{up.title}</h2>
+            {!isMobile && <h2 className="font-display text-xl md:text-2xl font-bold mb-4 md:mb-6" style={{ color: colors.textHeading }}>{up.title}</h2>}
             <motion.div className="p-8 md:p-16 rounded-2xl text-center cursor-pointer nyaya-transition" style={{ border: `2px dashed ${dragging ? colors.gold : colors.border}`, background: dragging ? 'rgba(201,162,39,0.04)' : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.6)') }} onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={handleDrop} onClick={handleFileSelect} whileHover={{ borderColor: '#c9a227' }}>
               <Upload className="w-8 md:w-10 h-8 md:h-10 mx-auto mb-3 md:mb-4" style={{ color: colors.textMuted }} strokeWidth={1.5} />
               <p className="font-body font-semibold text-sm mb-1" style={{ color: colors.textPrimary }}>{up.drop_here}</p>
@@ -211,6 +224,7 @@ const UploadDocument = () => {
             </motion.div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

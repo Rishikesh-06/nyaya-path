@@ -225,10 +225,10 @@ const SahaayChat = () => {
   ];
 
   return (
-    <div className="flex h-full overflow-hidden" style={{ fontFamily: 'inherit' }}>
+    <div className="flex h-full w-full overflow-hidden relative" style={{ fontFamily: 'inherit' }}>
       <AnimatePresence>
         {sidebarOpen && (
-          <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: isMobile ? '100%' : 260, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ flexShrink: 0, borderRight: `1px solid ${colors.border}`, background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.6)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: isMobile ? 'absolute' : 'relative', zIndex: isMobile ? 20 : 'auto', height: '100%', left: 0, top: 0 }}>
+          <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: isMobile ? '100%' : 260, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ flexShrink: 0, borderRight: `1px solid ${colors.border}`, background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: isMobile ? 'absolute' : 'relative', zIndex: isMobile ? 20 : 'auto', height: '100%', left: 0, top: 0 }}>
             <div style={{ padding: '16px 12px 8px 12px', flexShrink: 0 }}>
               <button onClick={startNewChat} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-body text-sm font-semibold nyaya-transition" style={{ background: isDark ? 'rgba(201,162,39,0.1)' : 'rgba(26,60,94,0.06)', border: `1px solid ${colors.border}`, color: isDark ? colors.gold : colors.navy }}>
                 <Plus className="w-4 h-4" strokeWidth={2} />
@@ -250,19 +250,21 @@ const SahaayChat = () => {
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ minWidth: 0 }}>
-        <div className="flex items-center gap-3 px-3 md:px-4 py-2.5 md:py-3" style={{ borderBottom: `1px solid ${colors.border}`, flexShrink: 0 }}>
-          <button onClick={() => setSidebarOpen(v => !v)} className="w-8 h-8 rounded-lg flex items-center justify-center nyaya-transition hover:bg-white/10" style={{ border: `1px solid ${colors.border}` }}>
-            {sidebarOpen ? <PanelLeftClose className="w-4 h-4" style={{ color: colors.textSecondary }} strokeWidth={1.5} /> : <PanelLeft className="w-4 h-4" style={{ color: colors.textSecondary }} strokeWidth={1.5} />}
-          </button>
-          <div className="flex items-center gap-2 flex-1">
-            <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(201,162,39,0.15)' }}><Sparkles className="w-3.5 h-3.5 text-nyaya-gold" /></div>
-            <div>
-              <p className="text-sm font-display font-semibold" style={{ color: colors.textPrimary }}>Sahaay</p>
-              <p className="text-[10px] font-body" style={{ color: colors.textMuted }}>Your legal companion</p>
+      <div className="flex-1 flex flex-col w-full h-full overflow-hidden relative" style={{ minWidth: 0 }}>
+        <div className="flex items-center justify-between gap-2 px-2 md:px-4 py-2  md:py-3 flex-wrap" style={{ borderBottom: `1px solid ${colors.border}`, flexShrink: 0 }}>
+          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-[150px]">
+            <button onClick={() => setSidebarOpen(v => !v)} className="w-8 h-8 rounded-lg flex items-center justify-center nyaya-transition hover:bg-white/10 flex-shrink-0" style={{ border: `1px solid ${colors.border}` }}>
+              {sidebarOpen ? <PanelLeftClose className="w-4 h-4" style={{ color: colors.textSecondary }} strokeWidth={1.5} /> : <PanelLeft className="w-4 h-4" style={{ color: colors.textSecondary }} strokeWidth={1.5} />}
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(201,162,39,0.15)' }}><Sparkles className="w-3.5 h-3.5 text-nyaya-gold" /></div>
+              <div>
+                <p className="text-sm font-display font-semibold" style={{ color: colors.textPrimary }}>Sahaay</p>
+                <p className="text-[10px] font-body" style={{ color: colors.textMuted }}>Your legal companion</p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {(['English', 'Telugu', 'Hindi'] as LanguageCode[]).map(l => (
               <button key={l} onClick={() => handleLanguageChange(l)} className="px-2.5 py-1 rounded-full text-xs font-body font-medium nyaya-transition" style={{ background: selectedLanguage === l ? '#c9a227' : 'transparent', color: selectedLanguage === l ? '#fff' : colors.textSecondary, border: `1px solid ${selectedLanguage === l ? '#c9a227' : colors.border}` }}>
                 {l === 'English' ? 'English' : l === 'Telugu' ? 'తెలుగు' : 'हिन्दी'}
@@ -294,11 +296,11 @@ const SahaayChat = () => {
                   return (
                     <React.Fragment key={msg.id}>
                       {showDate && <div className="flex justify-center"><span className="text-[11px] font-body px-3 py-1 rounded-full" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: colors.textMuted }}>{formatDateSeparator(new Date(msg.timestamp))}</span></div>}
-                      <motion.div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                      <motion.div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
                         {msg.role === 'user'
-                          ? <div className="max-w-[85%] md:max-w-[75%] px-3 md:px-4 py-2.5 md:py-3 rounded-2xl rounded-tr-sm font-body text-sm" style={{ background: isDark ? 'rgba(26,60,94,0.7)' : 'rgba(26,60,94,0.85)', color: '#fff' }}>{msg.content}</div>
+                          ? <div className="max-w-[85%] md:max-w-[75%] px-3 md:px-4 py-2.5 md:py-3 rounded-2xl rounded-tr-sm font-body text-sm break-words whitespace-pre-wrap" style={{ background: isDark ? 'rgba(26,60,94,0.7)' : 'rgba(26,60,94,0.85)', color: '#fff', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{msg.content}</div>
                           : (
-                            <div className="max-w-[95%] md:max-w-[85%] rounded-2xl rounded-tl-sm p-3 md:p-4 space-y-3" style={{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)', border: `1px solid ${colors.border}`, borderLeft: `3px solid ${colors.gold}` }}>
+                            <div className="max-w-[95%] md:max-w-[85%] rounded-2xl rounded-tl-sm p-3 md:p-4 space-y-3 break-words" style={{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)', border: `1px solid ${colors.border}`, borderLeft: `3px solid ${colors.gold}`, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                               <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: isDark ? 'rgba(201,162,39,0.15)' : 'rgba(201,162,39,0.1)' }}><Sparkles className="w-3 h-3 text-nyaya-gold" /></div>
                                 <span className="text-xs font-body font-medium" style={{ color: colors.textPrimary }}>Sahaay</span>
@@ -337,10 +339,10 @@ const SahaayChat = () => {
 
         <div className="pt-2 md:pt-3 pb-3 md:pb-4" style={{ borderTop: `1px solid ${colors.border}`, flexShrink: 0 }}>
           {isListening && <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-lg text-xs font-body" style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />{selectedLanguage === 'Telugu' ? 'వింటున్నాను...' : selectedLanguage === 'Hindi' ? 'सुन रहा हूँ...' : 'Listening...'}</div>}
-          <div className="flex items-center gap-2 px-3 md:px-4 py-2.5 md:py-3 rounded-xl" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.9)', border: `1px solid ${isListening ? 'rgba(239,68,68,0.3)' : colors.border}` }}>
+          <div className="flex items-center gap-2 px-2 md:px-4 py-2 md:py-3 rounded-xl mx-2 md:mx-0" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.9)', border: `1px solid ${isListening ? 'rgba(239,68,68,0.3)' : colors.border}` }}>
             {sttSupported && <motion.button onClick={toggleListening} className="w-8 h-8 rounded-lg flex items-center justify-center nyaya-transition flex-shrink-0" style={{ background: isListening ? 'rgba(239,68,68,0.1)' : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(26,60,94,0.04)') }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>{isListening ? <MicOff className="w-4 h-4" style={{ color: '#ef4444' }} strokeWidth={1.5} /> : <Mic className="w-4 h-4" style={{ color: colors.textSecondary }} strokeWidth={1.5} />}</motion.button>}
-            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={selectedLanguage === 'Telugu' ? 'మీ సమస్య చెప్పండి...' : selectedLanguage === 'Hindi' ? 'अपनी समस्या बताएं...' : 'Describe your legal issue...'} disabled={loading} className="flex-1 text-sm font-body bg-transparent outline-none placeholder:text-muted-foreground min-w-0" style={{ color: colors.textPrimary }} />
-            <motion.button onClick={() => sendMessage()} disabled={loading || !input.trim()} className="w-8 h-8 rounded-lg flex items-center justify-center nyaya-transition flex-shrink-0" style={{ background: input.trim() ? '#c9a227' : 'rgba(201,162,39,0.3)' }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}><Send className="w-4 h-4" style={{ color: '#fff' }} strokeWidth={1.5} /></motion.button>
+            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={selectedLanguage === 'Telugu' ? 'మీ సమస్య... (Type here)' : selectedLanguage === 'Hindi' ? 'अपनी समस्या... (Type here)' : 'Describe your legal issue...'} disabled={loading} className="flex-1 text-[13px] md:text-sm font-body bg-transparent outline-none placeholder:text-muted-foreground min-w-0 px-1" style={{ color: colors.textPrimary }} />
+            <motion.button onClick={() => sendMessage()} disabled={loading || !input.trim()} className="w-8 h-8 rounded-lg flex items-center justify-center nyaya-transition flex-shrink-0" style={{ background: input.trim() ? '#c9a227' : 'rgba(201,162,39,0.3)' }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}><Send className="w-4 h-4 pb-0.5 pr-0.5" style={{ color: '#fff' }} strokeWidth={1.5} /></motion.button>
           </div>
         </div>
       </div>

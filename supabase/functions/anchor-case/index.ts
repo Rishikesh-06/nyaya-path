@@ -53,15 +53,23 @@ serve(async (req) => {
     const { data: caseData, error } = await supabase.from('cases').select('*').eq('id', caseId).single()
     if (error || !caseData) throw new Error("Case not found");
 
-    // Generate Hash
-    const caseHash = await generateCaseHash(caseData)
-
-    // Initial Database Update
-    await supabase.from('cases').update({
-      case_hash: caseHash,
-      blockchain_status: 'pending',
-      integrity_status: 'valid' // assumes originally valid
-    }).eq('id', caseId)
+    // Use existing hash or generate if null
+    let caseHash = caseData.case_hash;
+    if (!caseHash) {
+      caseHash = await generateCaseHash(caseData);
+      
+      // Initial Database Update - ONLY update case_hash if it wasn't there
+      await supabase.from('cases').update({
+        case_hash: caseHash,
+        blockchain_status: 'pending',
+        integrity_status: 'valid'
+      }).eq('id', caseId)
+    } else {
+      // Just update status, NEVER touch case_hash
+      await supabase.from('cases').update({
+        blockchain_status: 'pending'
+      }).eq('id', caseId)
+    }
 
     // Initialize Blockchain connection
     const rpcUrl = Deno.env.get('POLYGON_RPC_URL')
