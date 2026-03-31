@@ -114,7 +114,7 @@ const VictimLayout = () => {
         </div>
       </aside>
 
-      <div className="flex-1" style={{ marginLeft: isMobile ? 0 : '260px', transition: 'margin-left 0.3s ease' }}>
+      <div className="flex-1 min-w-0 w-full flex flex-col" style={{ marginLeft: isMobile ? 0 : '260px', transition: 'margin-left 0.3s ease' }}>
         <header className="sticky top-0 z-[30] h-[60px] flex items-center justify-between px-4 md:px-6" style={{
           background: colors.topbarBg,
           backdropFilter: 'blur(24px) saturate(180%)',

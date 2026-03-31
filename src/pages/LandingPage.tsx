@@ -132,19 +132,19 @@ const LandingPage = () => {
       {/* Hero */}
       <section className="min-h-screen pt-24 md:pt-32 pb-12 md:pb-20 px-4 md:px-6 mesh-bg relative overflow-hidden">
         <ParticleField count={50} />
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12 relative z-10">
-          <div className="flex-1 lg:max-w-[55%]">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-8 md:gap-12 relative z-10">
+          <div className="w-full lg:flex-1 lg:max-w-[55%]">
             <motion.div
-              className="flex items-center gap-2 mb-8"
+              className="flex items-center gap-2 mb-6 md:mb-8"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="w-0.5 h-5 bg-nyaya-gold rounded-full" />
-              <span className="text-xs font-body font-medium tracking-[0.2em] uppercase text-nyaya-gold">India's Legal Justice Platform</span>
+              <div className="w-0.5 h-4 md:h-5 bg-nyaya-gold rounded-full" />
+              <span className="text-[10px] md:text-xs font-body font-medium tracking-[0.2em] uppercase text-nyaya-gold">India's Legal Justice Platform</span>
             </motion.div>
 
-            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-[64px] font-display font-bold mb-6 flex flex-col" style={{ lineHeight: 1.05, margin: '0 0 24px', gap: '4px' }}>
+            <h1 className="text-[clamp(2.5rem,6vw+1rem,4rem)] lg:text-[64px] font-display font-bold mb-4 md:mb-6 flex flex-col" style={{ lineHeight: 1.05, margin: '0 0 24px', gap: '4px' }}>
               <AnimatedText text="Justice for" className="block text-foreground leading-[1.05] m-0 p-0" />
               <AnimatedText text="Not Just the" className="block text-foreground leading-[1.05] m-0 p-0" />
               <AnimatedText text="Wealthy." className="block text-foreground leading-[1.05] m-0 p-0" />
@@ -210,12 +210,12 @@ const LandingPage = () => {
 
           {/* Hero 2D Visual — Animated Scales */}
           <motion.div
-            className="flex-1 hidden lg:flex items-center justify-center relative"
+            className="w-full lg:flex-1 flex items-center justify-center relative mt-6 lg:mt-0"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
           >
-            <HeroScales2D className="w-full h-[500px]" />
+            <HeroScales2D className="w-full max-w-[300px] sm:max-w-[400px] lg:max-w-full h-[250px] sm:h-[350px] lg:h-[500px]" />
           </motion.div>
         </div>
       </section>
