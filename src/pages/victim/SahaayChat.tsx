@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Mic, MicOff, Send, Copy, Trash2, Plus, MessageSquare, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Sparkles, Mic, MicOff, Send, Copy, Trash2, Plus, MessageSquare, PanelLeftClose, PanelLeft, Shield, Phone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -9,6 +9,8 @@ import { LANGUAGES, QUICK_QUESTIONS, LanguageCode } from '@/config/languages';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useCrisisDetection } from '@/hooks/useCrisisDetection';
+import EmergencyContactModal from '@/components/EmergencyContactModal';
 
 interface Message {
   id: string;
@@ -16,6 +18,7 @@ interface Message {
   content: string;
   language: LanguageCode;
   timestamp: string;
+  isCrisis?: boolean;
 }
 
 interface Session {
@@ -23,6 +26,21 @@ interface Session {
   title: string;
   created_at: string;
 }
+
+interface EmergencyContact {
+  id?: string;
+  name: string;
+  phone: string;
+  email: string;
+}
+
+const HELPLINES = [
+  { name: 'iCall', number: '9152987821' },
+  { name: 'Vandrevala Foundation', number: '1860-2662-345' },
+  { name: 'AASRA', number: '9820466627' },
+  { name: 'Women Helpline', number: '1091' },
+  { name: 'Police', number: '112' },
+];
 
 const parseResponse = (text: string, language: LanguageCode) => {
   const { sections } = LANGUAGES[language];
@@ -96,6 +114,8 @@ const SahaayChat = () => {
   const { colors, isDark } = useTheme();
   const { toast } = useToast();
   const { isMobile } = useResponsive();
+  const { detectCrisis } = useCrisisDetection();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -104,6 +124,11 @@ const SahaayChat = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [emergencyContact, setEmergencyContact] = useState<EmergencyContact | null>(null);
+  const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+  const [crisisActive, setCrisisActive] = useState(false);
+  const [notifying, setNotifying] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -113,6 +138,17 @@ const SahaayChat = () => {
     onTranscript: (text) => { setInput(text); },
     onError: (errMsg) => toast({ title: 'Voice Error', description: errMsg, variant: 'destructive' }),
   });
+
+  // Load emergency contact
+  const loadEmergencyContact = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await (supabase as any)
+      .from('emergency_contacts')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+    if (data) setEmergencyContact(data);
+  }, [user?.id]);
 
   const loadSessions = useCallback(async () => {
     if (!user?.id) return;
@@ -140,11 +176,18 @@ const SahaayChat = () => {
       setIsLoadingHistory(false);
     });
     loadSessions();
-  }, [user, loadSessions]);
+    loadEmergencyContact();
+  }, [user, loadSessions, loadEmergencyContact]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
 
-  const startNewChat = () => { setCurrentSessionId(null); setMessages([]); if (isMobile) setSidebarOpen(false); setTimeout(() => inputRef.current?.focus(), 100); };
+  const startNewChat = () => {
+    setCurrentSessionId(null);
+    setMessages([]);
+    setCrisisActive(false);
+    if (isMobile) setSidebarOpen(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
 
   const loadSession = async (sessionId: string) => {
     if (sessionId === currentSessionId) return;
@@ -191,33 +234,153 @@ const SahaayChat = () => {
     if (user) await supabase.from('users').update({ preferred_language: lang }).eq('id', user.id);
   };
 
+  // Notify emergency contact
+  const notifyEmergencyContact = useCallback(async (userMessage: string) => {
+    if (!emergencyContact || notifying) return;
+    setNotifying(true);
+    try {
+      const userName = (user as any)?.full_name || (user as any)?.name || 'NYAYA User';
+      const sessionData = await supabase.auth.getSession();
+      const token = sessionData.data.session?.access_token;
+
+      if (!token) throw new Error('You must be logged in to trigger a crisis alert.');
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/crisis-alert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          contactName: emergencyContact.name,
+          contactPhone: emergencyContact.phone.replace(/\s+/g, ''),
+          contactEmail: emergencyContact.email,
+          userName,
+          message: userMessage,
+        })
+      });
+
+      let errorMsg = '';
+      let jsonRes;
+      try {
+        const text = await response.text();
+        try {
+          jsonRes = JSON.parse(text);
+          errorMsg = typeof jsonRes.error === 'string' ? jsonRes.error : (jsonRes.message || text);
+        } catch (e) {
+          errorMsg = text;
+        }
+      } catch (e) {
+        throw new Error(`Gateway Error (${response.status})`);
+      }
+
+      if (!response.ok) {
+        throw new Error(errorMsg || `HTTP ${response.status} Error`);
+      }
+      if (jsonRes && jsonRes.success === false) {
+        throw new Error(errorMsg || 'Failed to notify');
+      }
+
+      toast({
+        title: '🚨 Emergency contact notified',
+        description: `${emergencyContact.name} has been called and emailed.`,
+      });
+
+      // Save crisis alert to DB
+      await (supabase as any).from('crisis_alerts').insert({
+        user_id: user?.id,
+        message: userMessage,
+        crisis_score: 0.9,
+        contact_notified: true,
+        contact_name: emergencyContact.name,
+        contact_phone: emergencyContact.phone,
+        contact_email: emergencyContact.email,
+      });
+    } catch (err: any) {
+      console.error('Failed to notify emergency contact:', err);
+      toast({
+        title: 'Notification Failed',
+        description: err.message || 'Could not reach emergency contact. Please check your Twilio configuration.',
+        variant: 'destructive',
+      });
+    } finally {
+      setNotifying(false);
+    }
+  }, [emergencyContact, user, notifying, toast]);
+
   const sendMessage = useCallback(async (text?: string) => {
     const messageText = (text || input).trim();
     if (!messageText || loading) return;
-    setInput(''); stopSpeaking();
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: messageText, language: selectedLanguage, timestamp: new Date().toISOString() };
+    setInput('');
+    stopSpeaking();
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: messageText,
+      language: selectedLanguage,
+      timestamp: new Date().toISOString(),
+    };
+
     const newMsgs = [...messages, userMsg];
-    setMessages(newMsgs); setLoading(true);
+    setMessages(newMsgs);
+    setLoading(true);
+
+    // Run crisis detection in parallel with Groq
+    const [response, crisisResult] = await Promise.allSettled([
+      callGroqSahaay(messageText, selectedLanguage, messages.slice(-8).map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.content }))),
+      detectCrisis(messageText, selectedLanguage),
+    ]);
+
     try {
-      const response = await callGroqSahaay(messageText, selectedLanguage, messages.slice(-8).map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.content })));
-      const aiMsg: Message = { id: (Date.now() + 1).toString(), role: 'ai', content: response, language: selectedLanguage, timestamp: new Date().toISOString() };
+      const aiResponse = response.status === 'fulfilled' ? response.value : '';
+      const crisis = crisisResult.status === 'fulfilled' ? crisisResult.value : { isCrisis: false, score: 0 };
+
+      // Handle crisis
+      if (crisis.isCrisis) {
+        setCrisisActive(true);
+        if (emergencyContact) {
+          notifyEmergencyContact(messageText);
+        } else {
+          setShowEmergencyModal(true);
+        }
+      }
+
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        content: aiResponse,
+        language: selectedLanguage,
+        timestamp: new Date().toISOString(),
+        isCrisis: crisis.isCrisis,
+      };
+
       const finalMsgs = [...newMsgs, aiMsg];
       setMessages(finalMsgs);
       await saveConversation(finalMsgs);
     } catch (err: any) {
       toast({ title: 'Sahaay Error', description: err?.message || 'Could not reach AI. Please try again.', variant: 'destructive' });
       setMessages(newMsgs);
-    } finally { setLoading(false); }
-  }, [input, loading, messages, selectedLanguage, stopSpeaking, toast]);
+    } finally {
+      setLoading(false);
+    }
+  }, [input, loading, messages, selectedLanguage, stopSpeaking, toast, detectCrisis, emergencyContact, notifyEmergencyContact]);
 
   const handleCopy = (text: string) => { navigator.clipboard.writeText(text); toast({ title: 'Copied!' }); };
+
   const lang = LANGUAGES[selectedLanguage];
   const quickQuestions = QUICK_QUESTIONS[selectedLanguage] || QUICK_QUESTIONS['English'];
+
   const groupSessionsByDate = (sessions: Session[]) => {
     const groups: Record<string, Session[]> = {};
-    sessions.forEach(session => { const dateStr = formatDateSeparator(new Date(session.created_at)); if (!groups[dateStr]) groups[dateStr] = []; groups[dateStr].push(session); });
+    sessions.forEach(session => {
+      const dateStr = formatDateSeparator(new Date(session.created_at));
+      if (!groups[dateStr]) groups[dateStr] = [];
+      groups[dateStr].push(session);
+    });
     return groups;
   };
+
   const sectionConfig = [
     { key: 'right' as const, label: lang.sections.right, color: '#0a9e6e', bg: 'rgba(10,158,110,0.1)', italic: false },
     { key: 'say' as const, label: lang.sections.say, color: '#1a3c5e', bg: 'rgba(26,60,94,0.1)', italic: true },
@@ -226,6 +389,18 @@ const SahaayChat = () => {
 
   return (
     <div className="flex h-full w-full overflow-hidden relative" style={{ fontFamily: 'inherit' }}>
+
+      {/* Emergency Contact Modal */}
+      <EmergencyContactModal
+        isOpen={showEmergencyModal}
+        onClose={() => setShowEmergencyModal(false)}
+        onSaved={(contact) => {
+          setEmergencyContact(contact);
+          setShowEmergencyModal(false);
+          toast({ title: '✅ Contact saved! They will be notified in future crises.' });
+        }}
+      />
+
       <AnimatePresence>
         {sidebarOpen && (
           <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: isMobile ? '100%' : 260, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ flexShrink: 0, borderRight: `1px solid ${colors.border}`, background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: isMobile ? 'absolute' : 'relative', zIndex: isMobile ? 20 : 'auto', height: '100%', left: 0, top: 0 }}>
@@ -234,7 +409,18 @@ const SahaayChat = () => {
                 <Plus className="w-4 h-4" strokeWidth={2} />
                 {selectedLanguage === 'Telugu' ? 'కొత్త చాట్' : selectedLanguage === 'Hindi' ? 'नई चैट' : 'New Chat'}
               </button>
+
+              {/* Emergency Contact Button in Sidebar */}
+              <button
+                onClick={() => setShowEmergencyModal(true)}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl font-body text-xs font-medium nyaya-transition mt-2"
+                style={{ background: emergencyContact ? 'rgba(239,68,68,0.08)' : 'transparent', border: `1px solid ${emergencyContact ? 'rgba(239,68,68,0.3)' : colors.border}`, color: emergencyContact ? '#ef4444' : colors.textMuted }}
+              >
+                <Shield className="w-3.5 h-3.5" strokeWidth={1.5} />
+                {emergencyContact ? `📞 ${emergencyContact.name}` : 'Add Emergency Contact'}
+              </button>
             </div>
+
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px 12px' }}>
               {sessions.length === 0
                 ? <p className="text-xs font-body text-center py-8" style={{ color: colors.textMuted }}>{selectedLanguage === 'Telugu' ? 'ఇంకా చాట్‌లు లేవు' : selectedLanguage === 'Hindi' ? 'अभी तक कोई चैट नहीं' : 'No chats yet'}</p>
@@ -251,7 +437,62 @@ const SahaayChat = () => {
       </AnimatePresence>
 
       <div className="flex-1 flex flex-col w-full h-full overflow-hidden relative" style={{ minWidth: 0 }}>
-        <div className="flex items-center justify-between gap-2 px-2 md:px-4 py-2  md:py-3 flex-wrap" style={{ borderBottom: `1px solid ${colors.border}`, flexShrink: 0 }}>
+
+        {/* Crisis Banner */}
+        <AnimatePresence>
+          {crisisActive && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="flex flex-col gap-2 px-4 py-3"
+              style={{ background: 'rgba(239,68,68,0.08)', borderBottom: '1px solid rgba(239,68,68,0.2)' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-xs font-body font-semibold" style={{ color: '#ef4444' }}>
+                    {selectedLanguage === 'Telugu' ? '🚨 మీకు సహాయం అవసరం — మీరు ఒంటరిగా లేరు' : selectedLanguage === 'Hindi' ? '🚨 आपको मदद चाहिए — आप अकेले नहीं हैं' : '🚨 You are not alone — help is available'}
+                  </span>
+                </div>
+                <button onClick={() => setCrisisActive(false)} className="text-xs font-body" style={{ color: colors.textMuted }}>✕</button>
+              </div>
+
+              {/* Helplines */}
+              <div className="flex flex-wrap gap-2">
+                {HELPLINES.map(h => (
+                  <a key={h.name} href={`tel:${h.number}`} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-body font-medium nyaya-transition" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444' }}>
+                    <Phone className="w-3 h-3" strokeWidth={1.5} />
+                    {h.name}: {h.number}
+                  </a>
+                ))}
+              </div>
+
+              {/* Notify contact button if not yet notified */}
+              {!emergencyContact && (
+                <button
+                  onClick={() => setShowEmergencyModal(true)}
+                  className="text-xs font-body font-semibold px-3 py-1.5 rounded-lg self-start nyaya-transition"
+                  style={{ background: '#ef4444', color: '#fff' }}
+                >
+                  + Add Emergency Contact to Notify
+                </button>
+              )}
+              {emergencyContact && notifying && (
+                <p className="text-xs font-body" style={{ color: '#ef4444' }}>
+                  📞 Calling {emergencyContact.name}...
+                </p>
+              )}
+              {emergencyContact && !notifying && (
+                <p className="text-xs font-body" style={{ color: '#ef4444' }}>
+                  ✅ {emergencyContact.name} has been notified
+                </p>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="flex items-center justify-between gap-2 px-2 md:px-4 py-2 md:py-3 flex-wrap" style={{ borderBottom: `1px solid ${colors.border}`, flexShrink: 0 }}>
           <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-[150px]">
             <button onClick={() => setSidebarOpen(v => !v)} className="w-8 h-8 rounded-lg flex items-center justify-center nyaya-transition hover:bg-white/10 flex-shrink-0" style={{ border: `1px solid ${colors.border}` }}>
               {sidebarOpen ? <PanelLeftClose className="w-4 h-4" style={{ color: colors.textSecondary }} strokeWidth={1.5} /> : <PanelLeft className="w-4 h-4" style={{ color: colors.textSecondary }} strokeWidth={1.5} />}
@@ -298,9 +539,9 @@ const SahaayChat = () => {
                       {showDate && <div className="flex justify-center"><span className="text-[11px] font-body px-3 py-1 rounded-full" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: colors.textMuted }}>{formatDateSeparator(new Date(msg.timestamp))}</span></div>}
                       <motion.div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
                         {msg.role === 'user'
-                          ? <div className="max-w-[85%] md:max-w-[75%] px-3 md:px-4 py-2.5 md:py-3 rounded-2xl rounded-tr-sm font-body text-sm break-words whitespace-pre-wrap" style={{ background: isDark ? 'rgba(26,60,94,0.7)' : 'rgba(26,60,94,0.85)', color: '#fff', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{msg.content}</div>
+                          ? <div className="max-w-[85%] md:max-w-[75%] px-3 md:px-4 py-2.5 md:py-3 rounded-2xl rounded-tr-sm font-body text-sm break-words whitespace-pre-wrap" style={{ background: msg.isCrisis ? 'rgba(239,68,68,0.8)' : (isDark ? 'rgba(26,60,94,0.7)' : 'rgba(26,60,94,0.85)'), color: '#fff', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{msg.content}</div>
                           : (
-                            <div className="max-w-[95%] md:max-w-[85%] rounded-2xl rounded-tl-sm p-3 md:p-4 space-y-3 break-words" style={{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)', border: `1px solid ${colors.border}`, borderLeft: `3px solid ${colors.gold}`, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                            <div className="max-w-[95%] md:max-w-[85%] rounded-2xl rounded-tl-sm p-3 md:p-4 space-y-3 break-words" style={{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)', border: `1px solid ${msg.isCrisis ? 'rgba(239,68,68,0.3)' : colors.border}`, borderLeft: `3px solid ${msg.isCrisis ? '#ef4444' : colors.gold}`, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                               <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: isDark ? 'rgba(201,162,39,0.15)' : 'rgba(201,162,39,0.1)' }}><Sparkles className="w-3 h-3 text-nyaya-gold" /></div>
                                 <span className="text-xs font-body font-medium" style={{ color: colors.textPrimary }}>Sahaay</span>
