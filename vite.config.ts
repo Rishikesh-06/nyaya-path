@@ -11,6 +11,13 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      '/api/news': {
+        target: 'https://gnews.io/api/v4',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/news/, '')
+      }
+    }
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

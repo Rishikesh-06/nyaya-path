@@ -78,7 +78,7 @@ const LawUpdates = () => {
         try {
             const cat = CATEGORIES.find(c => c.key === category) || CATEGORIES[0];
             const sortBy = selectedSort === 'oldest' || selectedSort === 'publishedAt' ? 'publishedAt' : 'relevance';
-            const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(cat.query)}&lang=en&country=in&max=20&sortby=${sortBy}&apikey=${GNEWS_API_KEY}`;
+            const url = `/api/news/search?q=${encodeURIComponent(cat.query)}&lang=en&country=in&max=20&sortby=${sortBy}&apikey=${GNEWS_API_KEY}`;
             const res = await fetch(url);
             const data = await res.json();
             if (!data.articles) throw new Error(data.errors?.[0] || 'GNews error');
