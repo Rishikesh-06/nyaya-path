@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Newspaper, RefreshCw, ExternalLink, Calendar, Filter, ChevronDown, Search, Globe } from 'lucide-react';
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
+const GNEWS_API_KEY = import.meta.env.VITE_GNEWS_API_KEY;
 
 type LanguageCode = 'English' | 'Telugu' | 'Hindi';
 type CategoryKey = 'all' | 'supreme_court' | 'amendment' | 'high_court' | 'ipc' | 'consumer' | 'labour';
@@ -24,13 +24,13 @@ interface Article {
 }
 
 const CATEGORIES: { key: CategoryKey; label: string; color: string; query: string }[] = [
-    { key: 'all', label: 'All Updates', color: '#c9a227', query: 'India law legal court judgment amendment advocate' },
-    { key: 'supreme_court', label: 'Supreme Court', color: '#1a3c5e', query: 'Supreme Court India judgment ruling' },
-    { key: 'high_court', label: 'High Court', color: '#0a9e6e', query: 'High Court India verdict order' },
-    { key: 'amendment', label: 'Amendments', color: '#7c3aed', query: 'India law amendment bill parliament legal' },
-    { key: 'ipc', label: 'IPC / BNS', color: '#dc2626', query: 'IPC BNS CrPC BNSS India criminal law' },
-    { key: 'consumer', label: 'Consumer', color: '#f97316', query: 'consumer protection India court NCDRC' },
-    { key: 'labour', label: 'Labour Law', color: '#0891b2', query: 'labour law India workers rights employment' },
+    { key: 'all', label: 'All Updates', color: '#c9a227', query: 'India law legal court judgment' },
+    { key: 'supreme_court', label: 'Supreme Court', color: '#1a3c5e', query: 'Supreme Court India judgment' },
+    { key: 'high_court', label: 'High Court', color: '#0a9e6e', query: 'High Court India verdict' },
+    { key: 'amendment', label: 'Amendments', color: '#7c3aed', query: 'India law amendment parliament' },
+    { key: 'ipc', label: 'IPC / BNS', color: '#dc2626', query: 'IPC BNS India criminal law' },
+    { key: 'consumer', label: 'Consumer', color: '#f97316', query: 'consumer protection India court' },
+    { key: 'labour', label: 'Labour Law', color: '#0891b2', query: 'labour law India workers rights' },
 ];
 
 const SORT_OPTIONS = [
@@ -77,22 +77,21 @@ const LawUpdates = () => {
         setLoading(true);
         try {
             const cat = CATEGORIES.find(c => c.key === category) || CATEGORIES[0];
-            const sortBy = selectedSort === 'oldest' ? 'publishedAt' : selectedSort;
-            const baseUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(cat.query)}&language=en&sortBy=${sortBy}&pageSize=20&apiKey=${NEWS_API_KEY}`;
-            const url = `https://corsproxy.io/?${encodeURIComponent(baseUrl)}`;
+            const sortBy = selectedSort === 'oldest' || selectedSort === 'publishedAt' ? 'publishedAt' : 'relevance';
+            const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(cat.query)}&lang=en&country=in&max=20&sortby=${sortBy}&apikey=${GNEWS_API_KEY}`;
             const res = await fetch(url);
             const data = await res.json();
-            if (data.status !== 'ok') throw new Error(data.message || 'NewsAPI error');
-            let arts: Article[] = (data.articles || [])
-                .filter((a: any) => a.title && a.title !== '[Removed]' && a.description)
+            if (!data.articles) throw new Error(data.errors?.[0] || 'GNews error');
+            let arts: Article[] = data.articles
+                .filter((a: any) => a.title && a.description)
                 .map((a: any, i: number) => ({
                     id: `${i}-${a.publishedAt}`,
                     title: a.title,
                     description: a.description,
                     url: a.url,
-                    urlToImage: a.urlToImage,
+                    urlToImage: a.image,
                     publishedAt: a.publishedAt,
-                    source: a.source,
+                    source: { name: a.source?.name || 'News' },
                     category,
                 }));
             if (selectedSort === 'oldest') arts = arts.reverse();
@@ -173,7 +172,6 @@ const LawUpdates = () => {
             {/* Controls */}
             <div className="space-y-3">
                 <div className="flex flex-wrap gap-2 items-center">
-                    {/* Search */}
                     <div className="flex-1 min-w-[180px] flex items-center gap-2 px-3 py-2 rounded-xl"
                         style={{ border: `1px solid ${colors.border}`, background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)' }}>
                         <Search className="w-4 h-4 flex-shrink-0" style={{ color: colors.textMuted }} />
@@ -182,7 +180,6 @@ const LawUpdates = () => {
                             style={{ color: colors.textPrimary }} />
                     </div>
 
-                    {/* Sort */}
                     <div className="relative">
                         <button onClick={() => setShowSortMenu(v => !v)}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-body"
@@ -208,7 +205,6 @@ const LawUpdates = () => {
                         </AnimatePresence>
                     </div>
 
-                    {/* Language */}
                     <div className="flex items-center gap-1 p-1 rounded-xl" style={{ border: `1px solid ${colors.border}`, background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)' }}>
                         {(['English', 'Telugu', 'Hindi'] as LanguageCode[]).map(l => (
                             <button key={l} onClick={() => handleLanguageChange(l)}
@@ -219,7 +215,6 @@ const LawUpdates = () => {
                         ))}
                     </div>
 
-                    {/* Refresh */}
                     <button onClick={() => fetchNews(selectedCategory)} disabled={loading}
                         className="w-9 h-9 rounded-xl flex items-center justify-center"
                         style={{ border: `1px solid ${colors.border}`, background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)' }}>
@@ -227,7 +222,6 @@ const LawUpdates = () => {
                     </button>
                 </div>
 
-                {/* Category Pills */}
                 <div className="flex gap-2 flex-wrap">
                     {CATEGORIES.map(cat => (
                         <button key={cat.key} onClick={() => handleCategoryChange(cat.key)}
