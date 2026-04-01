@@ -78,9 +78,10 @@ const LawUpdates = () => {
         try {
             const cat = CATEGORIES.find(c => c.key === category) || CATEGORIES[0];
             const sortBy = selectedSort === 'oldest' ? 'publishedAt' : selectedSort;
-            const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(cat.query)}&language=en&sortBy=${sortBy}&pageSize=20&apiKey=${NEWS_API_KEY}`;
+            const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://newsapi.org/v2/everything?q=${encodeURIComponent(cat.query)}&language=en&sortBy=${sortBy}&pageSize=20&apiKey=${NEWS_API_KEY}`)}`;
             const res = await fetch(url);
-            const data = await res.json();
+            const raw = await res.json();
+            const data = JSON.parse(raw.contents);
             if (data.status !== 'ok') throw new Error(data.message || 'NewsAPI error');
             let arts: Article[] = (data.articles || [])
                 .filter((a: any) => a.title && a.title !== '[Removed]' && a.description)
