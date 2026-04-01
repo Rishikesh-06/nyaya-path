@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/hooks/use-toast';
-import { Newspaper, RefreshCw, ExternalLink, Calendar, MapPin, Filter, ChevronDown, Search, Globe } from 'lucide-react';
+import { Newspaper, RefreshCw, ExternalLink, Calendar, Filter, ChevronDown, Search, Globe } from 'lucide-react';
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
@@ -30,7 +30,7 @@ const CATEGORIES: { key: CategoryKey; label: string; color: string; query: strin
     { key: 'amendment', label: 'Amendments', color: '#7c3aed', query: 'India law amendment bill parliament legal' },
     { key: 'ipc', label: 'IPC / BNS', color: '#dc2626', query: 'IPC BNS CrPC BNSS India criminal law' },
     { key: 'consumer', label: 'Consumer', color: '#f97316', query: 'consumer protection India court NCDRC' },
-    { key: 'labour', label: 'Labour Law', value: '#0891b2', query: 'labour law India workers rights employment' } as any,
+    { key: 'labour', label: 'Labour Law', color: '#0891b2', query: 'labour law India workers rights employment' },
 ];
 
 const SORT_OPTIONS = [
@@ -78,10 +78,10 @@ const LawUpdates = () => {
         try {
             const cat = CATEGORIES.find(c => c.key === category) || CATEGORIES[0];
             const sortBy = selectedSort === 'oldest' ? 'publishedAt' : selectedSort;
-            const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://newsapi.org/v2/everything?q=${encodeURIComponent(cat.query)}&language=en&sortBy=${sortBy}&pageSize=20&apiKey=${NEWS_API_KEY}`)}`;
+            const baseUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(cat.query)}&language=en&sortBy=${sortBy}&pageSize=20&apiKey=${NEWS_API_KEY}`;
+            const url = `https://corsproxy.io/?${encodeURIComponent(baseUrl)}`;
             const res = await fetch(url);
-            const raw = await res.json();
-            const data = JSON.parse(raw.contents);
+            const data = await res.json();
             if (data.status !== 'ok') throw new Error(data.message || 'NewsAPI error');
             let arts: Article[] = (data.articles || [])
                 .filter((a: any) => a.title && a.title !== '[Removed]' && a.description)
@@ -172,7 +172,6 @@ const LawUpdates = () => {
 
             {/* Controls */}
             <div className="space-y-3">
-                {/* Search + Sort + Language */}
                 <div className="flex flex-wrap gap-2 items-center">
                     {/* Search */}
                     <div className="flex-1 min-w-[180px] flex items-center gap-2 px-3 py-2 rounded-xl"
@@ -264,7 +263,6 @@ const LawUpdates = () => {
                             className="rounded-2xl overflow-hidden cursor-pointer group"
                             style={{ border: `1px solid ${colors.border}`, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.9)' }}
                             whileHover={{ y: -3, boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }}>
-                            {/* Image */}
                             {article.urlToImage && (
                                 <div className="w-full h-44 overflow-hidden">
                                     <img src={article.urlToImage} alt={article.title}
@@ -273,7 +271,6 @@ const LawUpdates = () => {
                                 </div>
                             )}
                             <div className="p-4 space-y-2">
-                                {/* Source + Date */}
                                 <div className="flex items-center justify-between">
                                     <span className="text-[11px] font-body font-semibold px-2 py-0.5 rounded-full"
                                         style={{ background: 'rgba(201,162,39,0.1)', color: '#c9a227' }}>
@@ -284,15 +281,12 @@ const LawUpdates = () => {
                                         {formatDate(article.publishedAt)}
                                     </div>
                                 </div>
-                                {/* Title */}
                                 <h3 className="font-display font-semibold text-sm leading-snug line-clamp-2" style={{ color: colors.textPrimary }}>
                                     {article.title}
                                 </h3>
-                                {/* Description */}
                                 <p className="text-xs font-body line-clamp-2" style={{ color: colors.textSecondary }}>
                                     {article.description}
                                 </p>
-                                {/* Read More */}
                                 <div className="flex items-center gap-1 text-xs font-body font-semibold pt-1" style={{ color: '#c9a227' }}>
                                     Read More <ExternalLink className="w-3 h-3" />
                                 </div>
@@ -320,7 +314,6 @@ const LawUpdates = () => {
                                 </div>
                             )}
                             <div className="p-6 space-y-4">
-                                {/* Language toggle inside modal */}
                                 <div className="flex items-center justify-between flex-wrap gap-2">
                                     <span className="text-xs font-body font-semibold px-2 py-0.5 rounded-full"
                                         style={{ background: 'rgba(201,162,39,0.1)', color: '#c9a227' }}>
@@ -337,7 +330,6 @@ const LawUpdates = () => {
                                         ))}
                                     </div>
                                 </div>
-
                                 {translating ? (
                                     <div className="flex items-center gap-2 py-4">
                                         <div className="w-4 h-4 rounded-full border-2 border-nyaya-gold border-t-transparent animate-spin" />
@@ -361,7 +353,6 @@ const LawUpdates = () => {
                                         </p>
                                     </>
                                 )}
-
                                 <a href={selectedArticle.url} target="_blank" rel="noopener noreferrer"
                                     className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-body font-semibold text-sm"
                                     style={{ background: '#1a3c5e', color: '#fff' }}>
