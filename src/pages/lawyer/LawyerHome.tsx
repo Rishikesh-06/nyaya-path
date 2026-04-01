@@ -7,6 +7,8 @@ import CountUp from '@/components/CountUp';
 import TiltCard from '@/components/TiltCard';
 import ScrollReveal from '@/components/ScrollReveal';
 import TrophySVG from '@/components/2d/TrophySVG';
+import { useNavigate } from 'react-router-dom';
+import { Newspaper } from 'lucide-react';
 
 const LawyerHome = () => {
   const { user } = useAuth();
@@ -14,6 +16,7 @@ const LawyerHome = () => {
   const [scores, setScores] = useState<any>(null);
   const [recentCases, setRecentCases] = useState<any[]>([]);
   const [monthlyHero, setMonthlyHero] = useState<any>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) return;
@@ -107,7 +110,35 @@ const LawyerHome = () => {
           </div>
         </motion.div>
       )}
-
+      {/* Law Updates Card */}
+      <motion.div
+        onClick={() => navigate('/lawyer/updates')}
+        className="p-5 rounded-2xl cursor-pointer group"
+        style={{
+          background: isDark ? 'rgba(201,162,39,0.06)' : 'rgba(201,162,39,0.04)',
+          border: `1px solid rgba(201,162,39,0.2)`,
+        }}
+        whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(201,162,39,0.12)' }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(201,162,39,0.15)' }}>
+              <Newspaper className="w-5 h-5" style={{ color: '#c9a227' }} />
+            </div>
+            <div>
+              <p className="font-display font-semibold text-sm" style={{ color: colors.textPrimary }}>Law Updates</p>
+              <p className="text-xs font-body" style={{ color: colors.textMuted }}>Supreme Court • Amendments • Judgments • Live</p>
+            </div>
+          </div>
+          <span className="text-xs font-body font-semibold px-3 py-1 rounded-full group-hover:bg-nyaya-gold group-hover:text-white transition-all"
+            style={{ background: 'rgba(201,162,39,0.1)', color: '#c9a227' }}>
+            View →
+          </span>
+        </div>
+      </motion.div>
       {/* Recent Cases */}
       <div>
         <h3 className="font-display font-semibold text-xl mb-4" style={{ color: colors.textHeading }}>Recent Cases</h3>

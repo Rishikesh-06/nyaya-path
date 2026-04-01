@@ -40,6 +40,7 @@ import VideoCallPage from "./pages/VideoCallPage";
 import LawyerChat from "./pages/lawyer/LawyerChat";
 import MentorshipChat from "./pages/MentorshipChat";
 import ProofPage from "./pages/ProofPage";
+import LawUpdates from "./pages/lawyer/LawUpdates";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +98,7 @@ const AppRoutes = () => {
         <Route path="community/chat/:lawyerId" element={<LawyerChat />} />
         <Route path="appointments" element={<LawyerAppointments />} />
         <Route path="profile" element={<PlaceholderPage title="My Profile" />} />
+        <Route path="updates" element={<LawUpdates />} />
         <Route path="settings" element={<Settings />} />
       </Route>
 
