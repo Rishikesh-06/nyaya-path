@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import ResolveCaseModal from '@/components/ResolveCaseModal';
 import TiltCard from '@/components/TiltCard';
 import ScrollReveal from '@/components/ScrollReveal';
+import { mapNativeCategoryToLawyer } from '@/utils/categoryMapping';
 
 const LawyerCases = () => {
   const { user } = useAuth();
@@ -95,7 +96,9 @@ const LawyerCases = () => {
               <TiltCard className="glass-card p-5 rounded-xl" maxTilt={3}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-xs font-body font-medium" style={{ background: 'rgba(255,255,255,0.06)' }}>{c.category}</span>
+                    <span className="px-2 py-0.5 rounded text-xs font-body font-medium" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      {mapNativeCategoryToLawyer(c.category, c.description || c.ai_summary)}
+                    </span>
                     <span className="px-2 py-0.5 rounded-pill text-xs font-body font-semibold" style={{ color: statusColor[c.status] || '#fff', background: `${statusColor[c.status] || '#6b7280'}15` }}>
                       {c.status}
                     </span>

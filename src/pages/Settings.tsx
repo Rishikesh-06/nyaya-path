@@ -7,6 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useResponsive } from '@/hooks/useResponsive';
+import { LAWYER_CATEGORIES } from '@/utils/categoryMapping';
 
 const Settings = () => {
   const { user, refreshProfile } = useAuth();
@@ -20,6 +21,7 @@ const Settings = () => {
     age: '', gender: '', preferred_language: 'English',
     bio: '', fee_range_min: 0, fee_range_max: 0,
     university: '', year_of_study: 0,
+    specialization: [] as string[],
   });
 
   useEffect(() => {
@@ -37,6 +39,7 @@ const Settings = () => {
           bio: data.bio || '', fee_range_min: data.fee_range_min || 0,
           fee_range_max: data.fee_range_max || 0,
           university: data.university || '', year_of_study: data.year_of_study || 0,
+          specialization: data.specialization || [],
         });
       }
     };
@@ -59,6 +62,7 @@ const Settings = () => {
         updates.bio = profile.bio || null;
         updates.fee_range_min = profile.fee_range_min;
         updates.fee_range_max = profile.fee_range_max;
+        updates.specialization = profile.specialization;
       }
       if (user.role === 'student') {
         updates.university = profile.university || null;
@@ -211,6 +215,38 @@ const Settings = () => {
               <div>
                 <label style={labelStyle}>{l('గరిష్ట ఫీజు', 'अधिकतम शुल्क', 'Max Fee (₹)')}</label>
                 <input style={inputStyle} type="number" value={profile.fee_range_max} onChange={e => setProfile(p => ({ ...p, fee_range_max: parseInt(e.target.value) || 0 }))} onFocus={focusHandler} onBlur={blurHandler} />
+              </div>
+            </div>
+            
+            <div style={{ marginTop: '16px' }}>
+              <label style={labelStyle}>{l('నైపుణ్యం (Specialization)', 'विशेषज्ञता (Specialization)', 'Areas of Specialization')}</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {LAWYER_CATEGORIES.map(cat => {
+                  const isSelected = profile.specialization.includes(cat);
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setProfile(p => ({
+                        ...p,
+                        specialization: isSelected ? p.specialization.filter(c => c !== cat) : [...p.specialization, cat]
+                      }))}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: isSelected ? `2px solid ${colors.gold}` : `1px solid ${colors.border}`,
+                        background: isSelected ? `${colors.gold}15` : colors.cardBg,
+                        color: isSelected ? colors.gold : colors.textSecondary,
+                        fontSize: '13px',
+                        fontWeight: isSelected ? 600 : 400,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

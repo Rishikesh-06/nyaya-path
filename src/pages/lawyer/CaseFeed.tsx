@@ -8,6 +8,7 @@ import TiltCard from '@/components/TiltCard';
 import ScrollReveal from '@/components/ScrollReveal';
 import { integrityService } from '@/services/integrityService';
 import { updateCaseWithAudit } from '@/services/caseAuditService';
+import { getNativeCategoriesForLawyerSpec, LAWYER_CATEGORIES, mapNativeCategoryToLawyer } from '@/utils/categoryMapping';
 
 const categoryColors: Record<string, string> = {
   'Tenant Rights': 'hsl(210, 56%, 24%)', 'Labor Law': 'hsl(160, 87%, 33%)', 'Domestic Violence': 'hsl(0, 84%, 60%)', 'Education': 'hsl(25, 95%, 53%)', 'Criminal': 'hsl(270, 80%, 60%)', 'Consumer Rights': 'hsl(43, 72%, 47%)', 'Property': 'hsl(179, 80%, 25%)',
@@ -83,16 +84,45 @@ const CaseFeed = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All Cases');
   const [accepting, setAccepting] = useState<string | null>(null);
+  const [specializations, setSpecializations] = useState<string[]>([]);
+  const [hasNoSpecialization, setHasNoSpecialization] = useState(false);
 
   const fetchCases = async () => {
+    if (!user) return;
+
+    const { data: profile } = await supabase
+      .from('users')
+      .select('specialization')
+      .eq('id', user.id)
+      .single();
+
+    const specs = profile?.specialization || [];
+    setSpecializations(specs);
+
+    if (specs.length === 0) {
+      setHasNoSpecialization(true);
+      setCases([]);
+      setLoading(false);
+      return;
+    }
+    setHasNoSpecialization(false);
+
     let query = supabase
       .from('cases')
       .select('*')
       .eq('status', 'open')
       .is('assigned_lawyer_id', null)
       .order('created_at', { ascending: false })
-      .limit(20);
-    if (filter !== 'All Cases') query = query.eq('category', filter);
+      .limit(50);
+
+    const nativeCategories = getNativeCategoriesForLawyerSpec(specs);
+
+    if (filter !== 'All Cases') {
+      query = query.in('category', getNativeCategoriesForLawyerSpec([filter]));
+    } else {
+      query = query.in('category', nativeCategories);
+    }
+    
     const { data } = await query;
     if (data) {
       const verifiedData = await Promise.all(data.map(async (c: any) => {
@@ -100,9 +130,17 @@ const CaseFeed = () => {
           localStorage.setItem(`case_snapshot_${c.id}`, JSON.stringify(c));
         }
         const integrity = await integrityService.verifyCase(c);
-        return { ...c, integrity };
+        const displayCategory = mapNativeCategoryToLawyer(c.category, c.description || c.ai_summary);
+        return { ...c, integrity, displayCategory };
       }));
-      setCases(verifiedData);
+      
+      const finalCases = verifiedData.filter(c => {
+        if (filter !== 'All Cases' && c.displayCategory !== filter) return false;
+        if (filter === 'All Cases' && !specs.includes(c.displayCategory)) return false;
+        return true;
+      });
+
+      setCases(finalCases);
     } else {
       setCases([]);
     }
@@ -169,20 +207,31 @@ const CaseFeed = () => {
     }
   };
 
-  const filters = ['All Cases', 'Tenant Rights', 'Criminal', 'Domestic Violence', 'Labor Law', 'Property', 'Consumer Rights'];
+  const ALL_FILTERS = LAWYER_CATEGORIES;
+  const availableFilters = ['All Cases', ...(specializations.length > 0 ? specializations : ALL_FILTERS)];
 
   return (
     <div className="max-w-3xl">
       <h2 className="font-display text-2xl font-bold text-foreground mb-2">Case Feed</h2>
       <p className="text-sm font-body text-muted-foreground mb-6">Open cases from verified victims seeking legal help.</p>
 
-      <div className="flex flex-wrap gap-2 mb-6">
-        {filters.map(f => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-pill text-xs font-body nyaya-transition ${f === filter ? 'bg-primary text-primary-foreground font-semibold' : ''}`} style={f !== filter ? { background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'hsl(var(--muted-foreground))' } : {}}>
-            {f}
-          </button>
-        ))}
-      </div>
+      {hasNoSpecialization && (
+        <div className="mb-6 p-4 rounded-xl border border-destructive/20 bg-destructive/10">
+          <p className="text-sm text-destructive font-semibold mb-2">⚠️ Specialization Required</p>
+          <p className="text-xs text-muted-foreground">You must select your areas of specialization in Settings to receive and view relevant cases.</p>
+          <button onClick={() => navigate('/lawyer/settings')} className="mt-3 px-4 py-1.5 rounded-lg text-xs font-semibold bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors">Go to Settings</button>
+        </div>
+      )}
+
+      {specializations.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-6">
+          {availableFilters.map(f => (
+            <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-pill text-xs font-body nyaya-transition ${f === filter ? 'bg-primary text-primary-foreground font-semibold' : ''}`} style={f !== filter ? { background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'hsl(var(--muted-foreground))' } : {}}>
+              {f}
+            </button>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-32 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />)}</div>
@@ -196,10 +245,10 @@ const CaseFeed = () => {
             <ScrollReveal key={c.id} delay={i * 0.05}>
               <TiltCard className="glass-card rounded-2xl overflow-hidden" maxTilt={4}>
                 <div className="flex">
-                  <div className="w-1.5 flex-shrink-0" style={{ background: `linear-gradient(180deg, ${categoryColors[c.category] || 'hsl(210, 56%, 24%)'}, transparent)` }} />
+                  <div className="w-1.5 flex-shrink-0" style={{ background: `linear-gradient(180deg, ${categoryColors[c.displayCategory] || 'hsl(210, 56%, 24%)'}, transparent)` }} />
                   <div className="p-5 flex-1">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="px-2 py-0.5 rounded-pill text-xs font-body font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: categoryColors[c.category] || '#fff' }}>{c.category}</span>
+                      <span className="px-2 py-0.5 rounded-pill text-xs font-body font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: categoryColors[c.displayCategory] || '#fff' }}>{c.displayCategory}</span>
                       <span className="text-xs font-body text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
                       {c.fir_verified && <span className="px-2 py-0.5 rounded-pill text-xs font-body" style={{ background: 'rgba(10,158,110,0.1)', color: '#0a9e6e' }}>FIR Verified</span>}
                       {c.integrity && (
